@@ -1,5 +1,7 @@
 const { Request, Response } = require('express');
 const db = require('../models');
+const { ErrorResponse, NotFoundErrorResponse } = require('../response-schemas/error-schema');
+const { SuccessObjectResponse, SuccessArrayResponse } = require('../response-schemas/success-schema');
 
 const tagController = {
 	/**
@@ -7,8 +9,9 @@ const tagController = {
 	 * @param {Response} res
 	 */
 	getAll: async (req, res) => {
-		const tags = await db.Tag.findAll();
-		return res.status(200).json(tags);
+		const data = await db.Tag.findAndCountAll();
+
+		return res.status(200).json(new SuccessArrayResponse(data.rows, data.count));
 	},
 
 	/**
@@ -23,10 +26,10 @@ const tagController = {
 		});
 
 		if (!tag) {
-			return res.status(404).json({ message: 'Tag not found', status: 404 });
+			return res.status(404).json(new NotFoundErrorResponse('Tag not found'));
 		}
 
-		return res.status(200).json(tag);
+		return res.status(200).json(new SuccessObjectResponse(tag));
 	},
 
 	/**
@@ -34,12 +37,10 @@ const tagController = {
 	 * @param {Response} res
 	 */
 	add: async (req, res) => {
-		const { name } = req.body;
-		const data = {
-			name
-		};
+		const data = req.validatedData;
+
 		const newTag = await db.Tag.create(data);
-		return res.status(201).json(newTag);
+		return res.status(201).json(new SuccessObjectResponse(newTag, 201));
 	},
 
 	/**
@@ -48,11 +49,8 @@ const tagController = {
 	 */
 	update: async (req, res) => {
 		const id = parseInt(req.params.id);
-		const { name } = req.body;
 
-		const data = {
-			name
-		};
+		const data = req.validatedData;
 
 		const updatedTag = await db.Tag.update(data, {
 			where: { id },
@@ -60,20 +58,30 @@ const tagController = {
 		});
 
 		if (!updatedTag[1]) {
-			return res.status(400).json({message: 'Bad request'})
+			return res.status(400).json(new ErrorResponse('Bad Request'));
 		}
 
 		const updatedValue = await db.Tag.findOne({where: {id}});
 
-		return res.status(200).json(updatedValue);
+		return res.status(200).json(new SuccessObjectResponse(updatedValue));
 	},
 
 	/**
 	 * @param {Request} req
 	 * @param {Response} res
 	 */
-	delete: (req, res) => {
-		res.sendStatus(501);
+	delete: async (req, res) => {
+		const id = parseInt(req.params.id);
+
+		const nbRow = await db.Tag.destroy({
+			where: { id }
+		});
+
+		if (nbRow !== 1) {
+			return res.status(404).json(new NotFoundErrorResponse('Tag not found'));
+		}
+
+		return res.sendStatus(204);
 	},
 }
 
