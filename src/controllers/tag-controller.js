@@ -9,6 +9,7 @@ const tagController = {
 	 * @param {Response} res
 	 */
 	getAll: async (req, res) => {
+		console.log(req.user);
 		const data = await db.Tag.findAndCountAll();
 
 		return res.status(200).json(new SuccessArrayResponse(data.rows, data.count));

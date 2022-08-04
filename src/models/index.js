@@ -13,5 +13,6 @@ const db = {};
 db.sequelize = sequelize;
 
 db.Tag = require('./tag')(sequelize);
+db.User = require('./user')(sequelize);
 
 module.exports = db;
